@@ -1,0 +1,95 @@
+/*
+ * CSS Styles that are needed by jScrollPane for it to operate correctly.
+ *
+ * Include this stylesheet in your site or copy and paste the styles below into your stylesheet - jScrollPane
+ * may not operate correctly without them.
+ */
+
+.cspContainer {
+	overflow: hidden;
+	position: relative;
+    .cspPane {
+        position: absolute;
+    }
+    .cspVerticalBar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 16px;
+        height: 100%;
+        background: red;
+        .cspArrow
+        {
+            height: 16px;
+            &:focus {
+                outline: none;
+            }
+        }
+    }
+    .cspHorizontalBar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 16px;
+        background: red;
+        .cspCap {
+            float: left;
+        }
+        .cspArrow {
+            width: 16px;
+            float: left;
+            height: 100%;
+        }
+        .cspTrack {
+            float: left;
+            height: 100%;
+            .cspCorner {
+                background: #eeeef4;
+                float: left;
+                height: 100%;
+            }
+        }
+        .cspDrag {
+            float: left;
+            height: 100%;
+        }
+    }
+    .cspVerticalBar,
+    .cspHorizontalBar {
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        .cspCap {
+            display: none;
+        }
+        .cspTrack {
+            background: #dde;
+            position: relative;
+            .cspDrag {
+                background: #bbd;
+                position: relative;
+                top: 0;
+                left: 0;
+                cursor: pointer;
+            }
+            .cspArrow {
+                background: #50506d;
+                text-indent: -20000px;
+                display: block;
+                cursor: pointer;
+                &.cspDisabled {
+                    cursor: default;
+                    background: #80808d;
+                }
+            }
+        }
+    }
+}
+
+/* Yuk! CSS Hack for IE6 3 pixel bug :( */
+* html .cspCorner
+{
+	margin: 0 -3px 0 0;
+}
