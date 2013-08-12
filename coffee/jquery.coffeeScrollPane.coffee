@@ -69,8 +69,11 @@ class VerticalScroll extends Scroll
     track: null
     drag: null
     trackHeight: 0
-    initialise: (container, pane) ->
-        container.append(
+    pane: null
+    dragPosition: null
+    initialise: (pane) ->
+        @pane = pane
+        @pane.container.append(
             $('<div class="cspVerticalBar" />').append(
                 $('<div class="cspCap cspCapTop" />'),
                 $('<div class="cspTrack" />').append(
@@ -83,17 +86,17 @@ class VerticalScroll extends Scroll
             )
         )
 
-        @bar = container.find('>.cspVerticalBar')
+        @bar = @pane.container.find('>.cspVerticalBar')
         @track = bar.find('>.cspTrack')
         @drag = track.find('>.cspDrag')
 
         if (@settings.showArrows)
             arrowUp = $('<a class="cspArrow cspArrowUp" />').bind(
                 'mousedown.csp', getArrowScroll(0, -1)
-            ).bind('click.csp', nil)
+            ).bind('click.csp', () -> false)
             arrowDown = $('<a class="cspArrow cspArrowDown" />').bind(
                 'mousedown.csp', getArrowScroll(0, 1)
-            ).bind('click.csp', nil)
+            ).bind('click.csp', () -> false)
             if (@settings.arrowScrollOnHover)
                 arrowUp.bind('mouseover.csp', getArrowScroll(0, -1, arrowUp))
                 arrowDown.bind('mouseover.csp', getArrowScroll(0, 1, arrowDown))
@@ -101,7 +104,7 @@ class VerticalScroll extends Scroll
             appendArrows(@track, @settings.verticalArrowPositions, arrowUp, arrowDown)
 
         @trackHeight = pane.height
-        container.find('>.cspVerticalBar>.cspCap:visible,>.cspVerticalBar>.cspArrow').each () ->
+        @pane.container.find('>.cspVerticalBar>.cspCap:visible,>.cspVerticalBar>.cspArrow').each () ->
             @trackHeight -= $(this).outerHeight()
 
         @drag.hover(() ->
@@ -110,7 +113,7 @@ class VerticalScroll extends Scroll
             @drag.removeClass('cspHover')
         ).bind('mousedown.csp', (e) ->
             # Stop IE from allowing text selection
-            $('html').bind('dragstart.csp selectstart.csp', nil)
+            $('html').bind('dragstart.csp selectstart.csp', () -> false)
 
             @drag.addClass('cspActive')
 
@@ -129,18 +132,25 @@ class VerticalScroll extends Scroll
         scrollbarWidth = @settings.verticalGutter + @track.outerWidth()
 
         # Make the pane thinner to allow for the vertical scrollbar
-        @pane.width(@paneWidth - scrollbarWidth - @originalPaddingTotalWidth)
+        @pane.width(@pane.width - scrollbarWidth - @originalPaddingTotalWidth)
 
         # Add margin to the left of the pane if scrollbars are on that side (to position
         # the scrollbar on the left or right set it's left or right property in CSS)
         try
             if @verticalBar.position().left == 0
-                @pane.css('margin-left', scrollbarWidth + 'px')
+                @pane.html.css('margin-left', scrollbarWidth + 'px')
         catch err
 
 class HorizontalScroll extends Scroll
-    initialise: container() ->
-        container.append(
+    bar: null
+    track: null
+    drag: null
+    trackHeight: 0
+    pane: null
+    dragPosition: null
+    initialise: (pane) ->
+        @pane = pane
+        @pane.container.append(
             $('<div class="cspHorizontalBar" />').append(
                 $('<div class="cspCap cspCapLeft" />'),
                 $('<div class="cspTrack" />').append(
@@ -153,48 +163,163 @@ class HorizontalScroll extends Scroll
             )
         )
 
-        @horizontalBar = @container.find('>.cspHorizontalBar')
-        @horizontalTrack = @horizontalBar.find('>.cspTrack')
-        @horizontalDrag = @horizontalTrack.find('>.cspDrag')
+        @bar = @pane.container.find('>.cspHorizontalBar')
+        @track = @bar.find('>.cspTrack')
+        @drag = @track.find('>.cspDrag')
 
         if (@settings.showArrows)
             arrowLeft = $('<a class="cspArrow cspArrowLeft" />').bind(
                 'mousedown.csp', getArrowScroll(-1, 0)
-            ).bind('click.csp', nil)
+            ).bind('click.csp', () -> false)
             arrowRight = $('<a class="cspArrow cspArrowRight" />').bind(
                 'mousedown.csp', getArrowScroll(1, 0)
-            ).bind('click.csp', nil)
+            ).bind('click.csp', () -> false)
             if (@settings.arrowScrollOnHover)
                 arrowLeft.bind('mouseover.csp', getArrowScroll(-1, 0, arrowLeft))
                 arrowRight.bind('mouseover.csp', getArrowScroll(1, 0, arrowRight))
-            appendArrows(@horizontalTrack, @settings.horizontalArrowPositions, arrowLeft, arrowRight)
+            appendArrows(@track, @settings.horizontalArrowPositions, arrowLeft, arrowRight)
 
         @horizontalDrag.hover(() ->
-                @horizontalDrag.addClass('cspHover')
+                @drag.addClass('cspHover')
             , () ->
-                @horizontalDrag.removeClass('cspHover')
+                @drag.removeClass('cspHover')
         ).bind('mousedown.csp', (e) ->
             # Stop IE from allowing text selection
-            $('html').bind('dragstart.csp selectstart.csp', nil)
+            $('html').bind('dragstart.csp selectstart.csp', () -> false)
 
-            @horizontalDrag.addClass('cspActive')
+            @drag.addClass('cspActive')
 
-            startX = e.pageX - @horizontalDrag.position().left
+            startX = e.pageX - @drag.position().left
 
             $('html').bind('mousemove.csp', (e) ->
                 positionDragX(e.pageX - startX, false)
             ).bind('mouseup.csp mouseleave.csp', cancelDrag)
             return false
         )
-        @horizontalTrackWidth = @container.innerWidth()
-        @sizeHorizontalScrollbar()
+        @trackWidth = @pane.container.innerWidth()
+        @barSize()
 
     barSize: () ->
-        @container.find('>.cspHorizontalBar>.cspCap:visible,>.cspHorizontalBar>.cspArrow').each () ->
-            @horizontalTrackWidth -= $(this).outerWidth()
+        @pane.container.find('>.cspHorizontalBar>.cspCap:visible,>.cspHorizontalBar>.cspArrow').each () ->
+            @trackWidth -= $(@).outerWidth()
 
-        @horizontalTrack.width(@horizontalTrackWidth + 'px')
-        @horizontalDragPosition = 0
+        @track.width(@trackWidth + 'px')
+        @dragPosition = 0
+
+class Pane
+    height: 0
+    width: 0
+    container: null
+    html: null
+    verticalScroll: null
+    horizontalScroll: null
+    construct: (settings) ->
+        @settings = settings
+
+    initialize: (elem) ->
+        @originalPadding = "#{@elem.css('paddingTop')} #{@elem.css('paddingRight')} #{@elem.css('paddingBottom')} #{@elem.css('paddingLeft')}"
+        @originalPaddingTotalWidth = (parseInt(@elem.css('paddingLeft'), 10) or 0) +
+                                    (parseInt(@elem.css('paddingRight'), 10) or 0)
+
+
+        @setSize(elem.innerWidth() + @originalPaddingTotalWidth, elem.innerHeight())
+        @html = $('<div class="cspPane" />').css('padding', @originalPadding).append(elem.children())
+        @container = $('<div class="cspContainer" />')
+            .css({
+                'width': @pane.width + 'px',
+                'height': @pane.height + 'px'
+            }
+        ).append(@pane.html).appendTo(@elem)
+
+        @verticalScroll = new VerticalScroll(@settings)
+        if @isScrollableV()
+            @verticalScroll.initialise(@pane)
+
+        @horizontalScroll = new HorizontalScroll(@settings)
+        if @isScrollableH()
+            @horizontalScroll.initialise(@pane)
+
+        @resizeScrollbars()
+
+    setSize: (width, height) ->
+        @width = width
+        @height = height
+
+    contentWidth: () ->
+        if not @_contentWidth?
+            @html.css('overflow', 'auto')
+            @_contentWidth = @html[0].scrollWidth
+            @html.css('overflow', '')
+        return @_contentWidth
+
+    contentHeight: () ->
+        if not @_contentHeight?
+            @html.css('overflow', 'auto')
+            @_contentHeight = @html[0].scrollHeight
+            @html.css('overflow', '')
+        return @_contentHeight
+
+    percentInViewH: () ->
+        return @contentWidth() / @width
+
+    percentInViewV: () ->
+        return @contentHeight() / @height
+
+    isScrollableH: () ->
+        return @percentInViewH() > 1
+
+    isScrollableV: () ->
+        return @percentInViewV() > 1
+
+    contentPositionX: () ->
+        return -@pane.html.position().left
+
+    contentPositionY: () ->
+        return -@pane.html.position().top
+
+    resizeScrollbars: () ->
+        if (@isScrollableH() and @isScrollableV())
+            @horizontalTrackHeight = @horizontalTrack.outerHeight()
+            @verticalTrackWidth = @verticalTrack.outerWidth()
+
+            @verticalTrackHeight -= @horizontalTrackHeight
+            $(@horizontalBar).find('>.cspCap:visible,>.cspArrow').each () ->
+                @horizontalTrackWidth += $(this).outerWidth()
+
+            @horizontalTrackWidth -= @verticalTrackWidth
+            @pane.height -= @verticalTrackWidth
+            @pane.width -= @horizontalTrackHeight
+            @horizontalTrack.parent().append(
+                $('<div class="cspCorner" />').css('width', @horizontalTrackHeight + 'px')
+            )
+            @sizeVerticalScrollbar()
+            @sizeHorizontalScrollbar()
+
+        # reflow content
+        if (@isScrollableH())
+            @pane.width((@pane.container.outerWidth() - @originalPaddingTotalWidth) + 'px')
+
+        if (@isScrollableH())
+            horizontalDragWidth = Math.ceil(1 / @percentInViewH() * @horizontalTrackWidth)
+            if (horizontalDragWidth > @settings.horizontalDragMaxWidth)
+                horizontalDragWidth = @settings.horizontalDragMaxWidth
+            else if (horizontalDragWidth < @settings.horizontalDragMinWidth)
+                horizontalDragWidth = @settings.horizontalDragMinWidth
+
+            @horizontalDrag.width(horizontalDragWidth + 'px')
+            @dragMaxX = @horizontalTrackWidth - horizontalDragWidth
+            @_positionDragX(@horizontalDragPosition); # To update the state for the arrow buttons
+
+        if (@isScrollableV())
+            verticalDragHeight = Math.ceil(1 / @percentInViewV() * @verticalTrackHeight)
+            if (verticalDragHeight > @settings.verticalDragMaxHeight)
+                verticalDragHeight = @settings.verticalDragMaxHeight
+            else if (verticalDragHeight < @settings.verticalDragMinHeight)
+                verticalDragHeight = @settings.verticalDragMinHeight
+
+            @verticalDrag.height(verticalDragHeight + 'px')
+            @dragMaxY = @verticalTrackHeight - verticalDragHeight
+            @_positionDragY(@verticalDragPosition); # To update the state for the arrow buttons
 
 
 class CScrollPane
@@ -210,7 +335,6 @@ class CScrollPane
         verticalDragMaxHeight: 99999
         horizontalDragMinWidth: 0
         horizontalDragMaxWidth: 99999
-        contentWidth: undefined
         animateScroll: false
         animateDuration: 300
         animateEase: 'linear'
@@ -243,11 +367,6 @@ class CScrollPane
         @originalElement = @elem.clone(false, false).empty()
         @mwEvent = if $.fn.mwheelIntent then 'mwheelIntent.csp' else 'mousewheel.csp'
 
-        @originalPadding = "#{@elem.css('paddingTop')} #{@elem.css('paddingRight')} #{@elem.css('paddingBottom')} #{@elem.css('paddingLeft')}"
-        @originalPaddingTotalWidth = (parseInt(@elem.css('paddingLeft'), 10) or 0) +
-                                    (parseInt(@elem.css('paddingRight'), 10) or 0)
-
-
     initialise: (s) ->
         maintainAtBottom = false
         maintainAtRight = false
@@ -262,112 +381,65 @@ class CScrollPane
                 padding: 0
             }
 
+            @pane = new Pane(settings)
+            @pane.initialise(@elem)
+
             # TODO: Deal with where width/ height is 0 as it probably means the element is hidden and we should
             # come back to it later and check once it is unhidden...
-            @paneWidth = @elem.innerWidth() + @originalPaddingTotalWidth
-            @paneHeight = @elem.innerHeight()
-
-            @elem.width(@paneWidth)
-
-            @pane = $('<div class="cspPane" />').css('padding', @originalPadding).append(@elem.children())
-            @container = $('<div class="cspContainer" />')
-                .css({
-                    'width': @paneWidth + 'px',
-                    'height': @paneHeight + 'px'
-                }
-            ).append(@pane).appendTo(@elem)
-
-            # Move any margins from the first and last children up to the container so they can still
-            # collapse with neighbouring elements as they would before cScrollPane
-            #firstChild = pane.find(':first-child');
-            #lastChild = pane.find(':last-child');
-            #elem.css(
-            #    {
-            #        'margin-top': firstChild.css('margin-top'),
-            #        'margin-bottom': lastChild.css('margin-bottom')
-            #    }
-            #);
-            #firstChild.css('margin-top', 0);
-            #lastChild.css('margin-bottom', 0);
+            @elem.width(@pane.width)
         else
             @elem.css('width', '')
 
             maintainAtBottom = @settings.stickToBottom and isCloseToBottom()
             maintainAtRight  = @settings.stickToRight  and isCloseToRight()
 
-            hasContainingSpaceChanged = @elem.innerWidth() + @originalPaddingTotalWidth != @paneWidth or @elem.outerHeight() != @paneHeight
+            hasContainingSpaceChanged = @elem.innerWidth() + @originalPaddingTotalWidth != @pane.width or @elem.outerHeight() != @pane.height
 
             if (hasContainingSpaceChanged)
-                @paneWidth = @elem.innerWidth() + @originalPaddingTotalWidth
-                @paneHeight = @elem.innerHeight()
-                @container.css {
-                    width: @paneWidth + 'px',
-                    height: @paneHeight + 'px'
+                @pane.setSize(@elem.innerWidth() + @originalPaddingTotalWidth, @elem.innerHeight())
+                @pane.container.css {
+                    width: @pane.width + 'px',
+                    height: @pane.height + 'px'
                 }
 
             # If nothing changed since last check...
-            if (!hasContainingSpaceChanged and previousContentWidth == @contentWidth and @pane.outerHeight() == @contentHeight)
-                @elem.width(@paneWidth)
+            if (!hasContainingSpaceChanged and previousContentWidth == @pane.contentWidth() and @pane.html.outerHeight() == @pane.contentHeight())
+                @elem.width(@pane.width)
                 return
 
-            previousContentWidth = @contentWidth
+            previousContentWidth = @pane.contentWidth()
 
-            @pane.css('width', '')
-            @elem.width(@paneWidth)
+            @pane.html.css('width', '')
+            @elem.width(@pane.width)
 
-            @container.find('>.cspVerticalBar,>.cspHorizontalBar').remove().end()
+            @pane.container.find('>.cspVerticalBar,>.cspHorizontalBar').remove().end()
 
-        @pane.css('overflow', 'auto')
-        if (s.contentWidth)
-            @contentWidth = s.contentWidth
-        else
-            @contentWidth = @pane[0].scrollWidth
-
-        @contentHeight = @pane[0].scrollHeight
-
-        @pane.css('overflow', '')
-
-        @percentInViewH = @contentWidth / @paneWidth
-        @percentInViewV = @contentHeight / @paneHeight
-        @isScrollableV = @percentInViewV > 1
-
-        @isScrollableH = @percentInViewH > 1
-
-        if (!(@isScrollableH or @isScrollableV))
+        if (!(@pane.isScrollableH() or @pane.isScrollableV()))
             @elem.removeClass('cspScrollable')
-            @pane.css {
+            @pane.html.css {
                 top: 0,
-                width: @container.width() - @originalPaddingTotalWidth
+                width: @pane.container.width() - @originalPaddingTotalWidth
             }
-            removeMousewheel()
-            removeFocusHandler()
-            removeKeyboardNav()
-            removeClickOnTrack()
+            @removeMousewheel()
+            @removeFocusHandler()
+            @removeKeyboardNav()
+            @removeClickOnTrack()
         else
             @elem.addClass('cspScrollable')
 
             isMaintainingPositon = @settings.maintainPosition and (@verticalDragPosition or @horizontalDragPosition)
             if (isMaintainingPositon)
-                lastContentX = @contentPositionX()
-                lastContentY = @contentPositionY()
-
-            @verticalScroll = new VerticalScroll()
-            if @isScrollableV
-                @verticalScroll.initialise(@container)
-            @horizontalScroll = new HorizontalScroll()
-            if @isScrollableH
-                @horizontalScroll.initialise(@container)
-
-            @resizeScrollbars()
+                lastContentX = @pane.contentPositionX()
+                lastContentY = @pane.contentPositionY()
 
             if (isMaintainingPositon)
                 if maintainAtRight
-                    scrollToX(@contentWidth  - @paneWidth, false)
+                    scrollToX(@pane.contentWidth()  - @pane.width, false)
                 else
                     scrollToX(lastContentX, false)
 
                 if maintainAtBottom
-                    scrollToY(@contentHeight - @paneHeight, false)
+                    scrollToY(@pane.contentHeight() - @pane.height, false)
                 else
                     scrollToY(lastContentY, false)
 
@@ -398,54 +470,6 @@ class CScrollPane
         originalScrollLeft and @elem.scrollLeft(0) and scrollToX(originalScrollLeft, false)
 
         @elem.trigger('csp-initialised', [@isScrollableH or @isScrollableV])
-
-    # TODO: Review the above methods to remove duplication
-    resizeScrollbars: () ->
-        if (@isScrollableH and @isScrollableV)
-            @horizontalTrackHeight = @horizontalTrack.outerHeight()
-            @verticalTrackWidth = @verticalTrack.outerWidth()
-
-            @verticalTrackHeight -= @horizontalTrackHeight
-            $(@horizontalBar).find('>.cspCap:visible,>.cspArrow').each () ->
-                @horizontalTrackWidth += $(this).outerWidth()
-
-            @horizontalTrackWidth -= @verticalTrackWidth
-            @paneHeight -= @verticalTrackWidth
-            @paneWidth -= @horizontalTrackHeight
-            @horizontalTrack.parent().append(
-                $('<div class="cspCorner" />').css('width', @horizontalTrackHeight + 'px')
-            )
-            @sizeVerticalScrollbar()
-            @sizeHorizontalScrollbar()
-
-        # reflow content
-        if (@isScrollableH)
-            @pane.width((@container.outerWidth() - @originalPaddingTotalWidth) + 'px')
-
-        @contentHeight = @pane.outerHeight()
-        @percentInViewV = @contentHeight / @paneHeight
-
-        if (@isScrollableH)
-            horizontalDragWidth = Math.ceil(1 / @percentInViewH * @horizontalTrackWidth)
-            if (horizontalDragWidth > @settings.horizontalDragMaxWidth)
-                horizontalDragWidth = @settings.horizontalDragMaxWidth
-            else if (horizontalDragWidth < @settings.horizontalDragMinWidth)
-                horizontalDragWidth = @settings.horizontalDragMinWidth
-
-            @horizontalDrag.width(horizontalDragWidth + 'px')
-            @dragMaxX = @horizontalTrackWidth - horizontalDragWidth
-            @_positionDragX(@horizontalDragPosition); # To update the state for the arrow buttons
-
-        if (@isScrollableV)
-            verticalDragHeight = Math.ceil(1 / @percentInViewV * @verticalTrackHeight)
-            if (verticalDragHeight > @settings.verticalDragMaxHeight)
-                verticalDragHeight = @settings.verticalDragMaxHeight
-            else if (verticalDragHeight < @settings.verticalDragMinHeight)
-                verticalDragHeight = @settings.verticalDragMinHeight
-
-            @verticalDrag.height(verticalDragHeight + 'px')
-            @dragMaxY = @verticalTrackHeight - verticalDragHeight
-            @_positionDragY(@verticalDragPosition); # To update the state for the arrow buttons
 
     appendArrows: (ele, p, a1, a2) ->
         p1 = "before"
@@ -512,8 +536,8 @@ class CScrollPane
                     doScroll = () ->
                         offset = clickedTrack.offset()
                         pos = e.pageY - offset.top - verticalDragHeight / 2
-                        contentDragY = @paneHeight * @settings.scrollPagePercent
-                        dragY = @dragMaxY * contentDragY / (@contentHeight - @paneHeight)
+                        contentDragY = @pane.height * @settings.scrollPagePercent
+                        dragY = @dragMaxY * contentDragY / (@pane.contentHeight() - @pane.height)
 
                         if (direction < 0)
                             if (@verticalDragPosition - dragY > pos)
@@ -556,8 +580,8 @@ class CScrollPane
                     doScroll = () ->
                         offset = clickedTrack.offset()
                         pos = e.pageX - offset.left - horizontalDragWidth / 2
-                        contentDragX = @paneWidth * @settings.scrollPagePercent
-                        dragX = @dragMaxX * contentDragX / (@contentWidth - @paneWidth)
+                        contentDragX = @pane.width * @settings.scrollPagePercent
+                        dragX = @dragMaxX * contentDragX / (@pane.contentWidth() - @pane.width)
 
                         if (direction < 0)
                             if (@horizontalDragPosition - dragX > pos)
@@ -631,13 +655,13 @@ class CScrollPane
         if (destY == undefined)
             destY = @verticalDrag.position().top
 
-        @container.scrollTop(0)
+        @pane.container.scrollTop(0)
         @verticalDragPosition = destY
 
         isAtTop = @verticalDragPosition == 0
         isAtBottom = @verticalDragPosition == @dragMaxY
         percentScrolled = destY/ @dragMaxY
-        destTop = -percentScrolled * (@contentHeight - @paneHeight)
+        destTop = -percentScrolled * (@pane.contentHeight() - @pane.height)
 
         if (wasAtTop != isAtTop or wasAtBottom != isAtBottom)
             wasAtTop = isAtTop
@@ -645,7 +669,7 @@ class CScrollPane
             @elem.trigger('csp-arrow-change', [wasAtTop, wasAtBottom, @wasAtLeft, @wasAtRight])
 
         @updateVerticalArrows(isAtTop, isAtBottom)
-        @pane.css('top', destTop)
+        @pane.html.css('top', destTop)
         @elem.trigger('csp-scroll-y', [-destTop, isAtTop, isAtBottom]).trigger('scroll')
 
     # Positions the horizontal drag at the specified x position (and updates the viewport to reflect
@@ -673,13 +697,13 @@ class CScrollPane
         if (destX == undefined)
             destX = @horizontalDrag.position().left
 
-        @container.scrollTop(0)
+        @pane.container.scrollTop(0)
         @horizontalDragPosition = destX
 
         isAtLeft = @horizontalDragPosition == 0
         isAtRight = @horizontalDragPosition == @dragMaxX
         percentScrolled = destX / @dragMaxX
-        destLeft = -percentScrolled * (@contentWidth - @paneWidth)
+        destLeft = -percentScrolled * (@pane.contentWidth() - @pane.width)
 
         if (@wasAtLeft != isAtLeft or @wasAtRight != isAtRight)
             @wasAtLeft = isAtLeft
@@ -687,7 +711,7 @@ class CScrollPane
             @elem.trigger('csp-arrow-change', [wasAtTop, wasAtBottom, @wasAtLeft, @wasAtRight])
 
         @updateHorizontalArrows(isAtLeft, isAtRight)
-        @pane.css('left', destLeft)
+        @pane.html.css('left', destLeft)
         @elem.trigger('csp-scroll-x', [-destLeft, isAtLeft, isAtRight]).trigger('scroll')
 
     updateVerticalArrows: (isAtTop, isAtBottom) ->
@@ -704,14 +728,14 @@ class CScrollPane
     # viewport. animate is optional and if not passed then the value of animateScroll from the settings
     # object this cScrollPane was initialised with is used.
     scrollToY: (destY, animate) ->
-        percentScrolled = destY / (@contentHeight - @paneHeight)
+        percentScrolled = destY / (@pane.contentHeight() - @pane.height)
         positionDragY(percentScrolled * @dragMaxY, animate)
 
     # Scrolls the pane so that the specified co-ordinate within the content is at the left of the
     # viewport. animate is optional and if not passed then the value of animateScroll from the settings
     # object this cScrollPane was initialised with is used.
     scrollToX: (destX, animate) ->
-        percentScrolled = destX / (@contentWidth - @paneWidth)
+        percentScrolled = destX / (@pane.contentWidth() - @pane.width)
         positionDragX(percentScrolled * @dragMaxX, animate)
 
     # Scrolls the specified element (a jQuery object, DOM node or jQuery selector string) into view so
@@ -733,8 +757,8 @@ class CScrollPane
         eleHeight = e.outerHeight()
         eleWidth= e.outerWidth()
 
-        @container.scrollTop(0)
-        @container.scrollLeft(0)
+        @pane.container.scrollTop(0)
+        @pane.container.scrollLeft(0)
 
         # loop through parents adding the offset top of any elements that are relatively positioned between
         # the focused element and the cspPane so we can get the true distance from the top
@@ -747,42 +771,36 @@ class CScrollPane
                 # we ended up too high in the document structure. Quit!
                 return
 
-        viewportTop = @contentPositionY()
-        maxVisibleEleTop = viewportTop + @paneHeight
+        viewportTop = @pane.contentPositionY()
+        maxVisibleEleTop = viewportTop + @pane.height
         if (eleTop < viewportTop or stickToTop) # element is above viewport
             destY = eleTop - @settings.verticalGutter
         else if (eleTop + eleHeight > maxVisibleEleTop) # element is below viewport
-            destY = eleTop - @paneHeight + eleHeight + @settings.verticalGutter
+            destY = eleTop - @pane.height + eleHeight + @settings.verticalGutter
 
         if (destY)
             scrollToY(destY, animate)
 
-        viewportLeft = @contentPositionX()
-        maxVisibleEleLeft = viewportLeft + @paneWidth
+        viewportLeft = @pane.contentPositionX()
+        maxVisibleEleLeft = viewportLeft + @pane.width
         if (eleLeft < viewportLeft or stickToTop) # element is to the left of viewport
             destX = eleLeft - @settings.horizontalGutter
         else if (eleLeft + eleWidth > maxVisibleEleLeft) # element is to the right viewport
-            destX = eleLeft - @paneWidth + eleWidth + @settings.horizontalGutter
+            destX = eleLeft - @pane.width + eleWidth + @settings.horizontalGutter
 
         if (destX)
             scrollToX(destX, animate)
 
-    contentPositionX: () ->
-        return -@pane.position().left
-
-    contentPositionY: () ->
-        return -@pane.position().top
-
     isCloseToBottom: () ->
-        scrollableHeight = @contentHeight - @paneHeight
-        return (scrollableHeight > 20) and (scrollableHeight - @contentPositionY() < 10)
+        scrollableHeight = @pane.contentHeight() - @pane.height
+        return (scrollableHeight > 20) and (scrollableHeight - @pane.contentPositionY() < 10)
 
     isCloseToRight: () ->
-        scrollableWidth = @contentWidth - @paneWidth
-        return (scrollableWidth > 20) and (scrollableWidth - @contentPositionX() < 10)
+        scrollableWidth = @pane.contentWidth() - @pane.width
+        return (scrollableWidth > 20) and (scrollableWidth - @pane.contentPositionX() < 10)
 
     initMousewheel: () ->
-        @container.unbind(@mwEvent).bind @mwEvent, (event, delta, deltaX, deltaY) =>
+        @pane.container.unbind(@mwEvent).bind @mwEvent, (event, delta, deltaX, deltaY) =>
             dX = @horizontalDragPosition
             dY = @verticalDragPosition
             @scrollBy(deltaX * @settings.mouseWheelSpeed, -deltaY * @settings.mouseWheelSpeed, false)
@@ -790,14 +808,10 @@ class CScrollPane
             return dX == @horizontalDragPosition and dY == @verticalDragPosition
 
     removeMousewheel: () ->
-        @container.unbind(@mwEvent)
-
-    nil: () ->
-        return false
+        @pane.container.unbind(@mwEvent)
 
     initFocusHandler: () ->
-        @pane.find(':input,a').unbind('focus.csp'
-        ).bind('focus.csp', (e) ->
+        @pane.find(':input,a').unbind('focus.csp').bind('focus.csp', (e) ->
             scrollToElement(e.target, false)
         )
 
@@ -827,7 +841,7 @@ class CScrollPane
                         keyDown = e.keyCode
                         keyDownHandler()
                     when 35 # end
-                        scrollToY(@contentHeight - @paneHeight)
+                        scrollToY(@pane.contentHeight() - @pane.height)
                         keyDown = null
                     when 36 # home
                         scrollToY(0)
@@ -844,11 +858,11 @@ class CScrollPane
 
         if (@settings.hideFocus)
             @elem.css('outline', 'none')
-            if ('hideFocus' in @container[0])
+            if ('hideFocus' in @pane.container[0])
                 @elem.attr('hideFocus', true)
         else
             @elem.css('outline', '')
-            if ('hideFocus' in @container[0])
+            if ('hideFocus' in @pane.container[0])
                 @elem.attr('hideFocus', false)
 
         keyDownHandler: () ->
@@ -857,8 +871,8 @@ class CScrollPane
             switch keyDown
                 when 40 then @scrollByY(@settings.keyboardSpeed, false) # down
                 when 38 then @scrollByY(-@settings.keyboardSpeed, false) # up
-                when 34, 32 then @scrollByY(@paneHeight * @settings.scrollPagePercent, false) # page down, space
-                when 33 then @scrollByY(-@paneHeight * @settings.scrollPagePercent, false) # page up
+                when 34, 32 then @scrollByY(@pane.height * @settings.scrollPagePercent, false) # page down, space
+                when 33 then @scrollByY(-@pane.height * @settings.scrollPagePercent, false) # page up
                 when 39 then @scrollByX(@settings.keyboardSpeed, false)  # right
                 when 37 then @scrollByX(-@settings.keyboardSpeed, false)  # left
 
@@ -882,17 +896,17 @@ class CScrollPane
             if e.length and @pane.find(hash)
                 # nasty workaround but it appears to take a little while before the hash has done its thing
                 # to the rendered page so we just wait until the container's scrollTop has been messed up.
-                if (@container.scrollTop() == 0)
+                if (@pane.container.scrollTop() == 0)
                     retryInt = setInterval(() ->
-                        if (@container.scrollTop() > 0)
+                        if (@pane.container.scrollTop() > 0)
                             scrollToElement(e, true)
-                            $(document).scrollTop(@container.position().top)
+                            $(document).scrollTop(@pane.container.position().top)
                             clearInterval(retryInt)
                     , 50
                     )
                 else
                     scrollToElement(e, true)
-                    $(document).scrollTop(@container.position().top)
+                    $(document).scrollTop(@pane.container.position().top)
 
     hijackInternalLinks: () ->
         # only register the link handler once
@@ -932,19 +946,19 @@ class CScrollPane
                 # this link does not point to an element on this page
                 return
 
-            @container = element.closest('.cspScrollable')
-            csp = @container.data('csp')
+            @pane.container = element.closest('.cspScrollable')
+            csp = @pane.container.data('csp')
 
             # csp might be another csp instance than the one, that bound this event
             # remember: this event is only bound once for all instances.
             @scrollToElement(element, true)
 
-            if @container[0].scrollIntoView
+            if @pane.container[0].scrollIntoView
                 # also scroll to the top of the container (if it is not visible)
                 scrollTop = $(window).scrollTop()
                 elementTop = element.offset().top
                 if (elementTop < scrollTop or elementTop > scrollTop + $(window).height())
-                    @container[0].scrollIntoView()
+                    @pane.container[0].scrollIntoView()
 
             # csp handled this event, prevent the browser default (scrolling :P)
             event.preventDefault()
@@ -953,11 +967,11 @@ class CScrollPane
     initTouch: () ->
         moving = false
 
-        @container.unbind('touchstart.csp touchmove.csp touchend.csp click.csp-touchclick'
+        @pane.container.unbind('touchstart.csp touchmove.csp touchend.csp click.csp-touchclick'
         ).bind('touchstart.csp', (e) ->
             touch = e.originalEvent.touches[0]
-            startX = @contentPositionX()
-            startY = @contentPositionY()
+            startX = @pane.contentPositionX()
+            startY = @pane.contentPositionY()
             touchStartX = touch.pageX
             touchStartY = touch.pageY
             moved = false
@@ -990,8 +1004,8 @@ class CScrollPane
     # Removes the cScrollPane and returns the page to the state it was in before cScrollPane was
     # initialised.
     destroy: () ->
-        currentY = @contentPositionY()
-        currentX = @contentPositionX()
+        currentY = @pane.contentPositionY()
+        currentX = @pane.contentPositionX()
 
         @elem.removeClass('cspScrollable').unbind('.csp')
         @elem.replaceWith(originalElement.append(@pane.children()))
@@ -1021,13 +1035,13 @@ class CScrollPane
     # is optional and if not passed then the value of animateScroll from the settings object this
     # cScrollPane was initialised with is used.
     scrollToPercentX: (destPercentX, animate) ->
-        @scrollToX(destPercentX * (@contentWidth - @paneWidth), animate)
+        @scrollToX(destPercentX * (@pane.contentWidth() - @pane.width), animate)
 
     # Scrolls the pane to the specified percentage of its maximum vertical scroll position. animate
     # is optional and if not passed then the value of animateScroll from the settings object this
     # cScrollPane was initialised with is used.
     scrollToPercentY: (destPercentY, animate) ->
-        @scrollToY(destPercentY * (@contentHeight - @paneHeight), animate)
+        @scrollToY(destPercentY * (@pane.contentHeight() - @pane.height), animate)
 
     # Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
     # the value of animateScroll from the settings object this cScrollPane was initialised with is used.
@@ -1038,15 +1052,15 @@ class CScrollPane
     # Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
     # the value of animateScroll from the settings object this cScrollPane was initialised with is used.
     scrollByX: (deltaX, animate) ->
-        destX = @contentPositionX() + Math[if deltaX<0 then 'floor' else 'ceil'](deltaX)
-        percentScrolled = destX / (@contentWidth - @paneWidth)
+        destX = @pane.contentPositionX() + Math[if deltaX<0 then 'floor' else 'ceil'](deltaX)
+        percentScrolled = destX / (@pane.contentWidth() - @pane.width)
         @positionDragX(percentScrolled * @dragMaxX, animate)
 
     # Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
     # the value of animateScroll from the settings object this cScrollPane was initialised with is used.
     scrollByY: (deltaY, animate) ->
-        destY = @contentPositionY() + Math[if deltaY<0 then 'floor' else 'ceil'](deltaY)
-        percentScrolled = destY / (@contentHeight - @paneHeight)
+        destY = @pane.contentPositionY() + Math[if deltaY<0 then 'floor' else 'ceil'](deltaY)
+        percentScrolled = destY / (@pane.contentHeight() - @pane.height)
         @positionDragY(percentScrolled * @dragMaxY, animate)
 
     # This method is called when cScrollPane is trying to animate to a new position. You can override
@@ -1068,15 +1082,15 @@ class CScrollPane
 
     # Returns the current x position of the viewport with regards to the content pane.
     getContentPositionX: () ->
-        return @contentPositionX()
+        return @pane.contentPositionX()
 
     # Returns the current y position of the viewport with regards to the content pane.
     getContentPositionY: () ->
-        return @contentPositionY()
+        return @pane.contentPositionY()
 
     # Returns the width of the content within the scroll pane.
     getContentWidth: () ->
-        return @contentWidth
+        return @pane.contentWidth()
 
     # Returns the height of the content within the scroll pane.
     getContentHeight: () ->
@@ -1084,11 +1098,11 @@ class CScrollPane
 
     # Returns the horizontal position of the viewport within the pane content.
     getPercentScrolledX: () ->
-        return @contentPositionX() / (@contentWidth - @paneWidth)
+        return @pane.contentPositionX() / (@pane.contentWidth() - @pane.width)
 
     # Returns the vertical position of the viewport within the pane content.
     getPercentScrolledY: () ->
-        return @contentPositionY() / (@contentHeight - @paneHeight)
+        return @pane.contentPositionY() / (@pane.contentHeight() - @pane.height)
 
     # Returns whether or not this scrollpane has a horizontal scrollbar.
     getIsScrollableH: () ->

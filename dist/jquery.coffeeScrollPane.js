@@ -1,5 +1,5 @@
 (function() {
-  var CScrollPane, HorizontalScroll, Scroll, VerticalScroll, _ref, _ref1,
+  var CScrollPane, HorizontalScroll, Pane, Scroll, VerticalScroll, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -31,15 +31,24 @@
 
     VerticalScroll.prototype.trackHeight = 0;
 
-    VerticalScroll.prototype.initialise = function(container, pane) {
+    VerticalScroll.prototype.pane = null;
+
+    VerticalScroll.prototype.dragPosition = null;
+
+    VerticalScroll.prototype.initialise = function(pane) {
       var arrowDown, arrowUp;
-      container.append($('<div class="cspVerticalBar" />').append($('<div class="cspCap cspCapTop" />'), $('<div class="cspTrack" />').append($('<div class="cspDrag" />').append($('<div class="cspDragTop" />'), $('<div class="cspDragBottom" />'))), $('<div class="cspCap cspCapBottom" />')));
-      this.bar = container.find('>.cspVerticalBar');
+      this.pane = pane;
+      this.pane.container.append($('<div class="cspVerticalBar" />').append($('<div class="cspCap cspCapTop" />'), $('<div class="cspTrack" />').append($('<div class="cspDrag" />').append($('<div class="cspDragTop" />'), $('<div class="cspDragBottom" />'))), $('<div class="cspCap cspCapBottom" />')));
+      this.bar = this.pane.container.find('>.cspVerticalBar');
       this.track = bar.find('>.cspTrack');
       this.drag = track.find('>.cspDrag');
       if (this.settings.showArrows) {
-        arrowUp = $('<a class="cspArrow cspArrowUp" />').bind('mousedown.csp', getArrowScroll(0, -1)).bind('click.csp', nil);
-        arrowDown = $('<a class="cspArrow cspArrowDown" />').bind('mousedown.csp', getArrowScroll(0, 1)).bind('click.csp', nil);
+        arrowUp = $('<a class="cspArrow cspArrowUp" />').bind('mousedown.csp', getArrowScroll(0, -1)).bind('click.csp', function() {
+          return false;
+        });
+        arrowDown = $('<a class="cspArrow cspArrowDown" />').bind('mousedown.csp', getArrowScroll(0, 1)).bind('click.csp', function() {
+          return false;
+        });
         if (this.settings.arrowScrollOnHover) {
           arrowUp.bind('mouseover.csp', getArrowScroll(0, -1, arrowUp));
           arrowDown.bind('mouseover.csp', getArrowScroll(0, 1, arrowDown));
@@ -47,7 +56,7 @@
         appendArrows(this.track, this.settings.verticalArrowPositions, arrowUp, arrowDown);
       }
       this.trackHeight = pane.height;
-      container.find('>.cspVerticalBar>.cspCap:visible,>.cspVerticalBar>.cspArrow').each(function() {
+      this.pane.container.find('>.cspVerticalBar>.cspCap:visible,>.cspVerticalBar>.cspArrow').each(function() {
         return this.trackHeight -= $(this).outerHeight();
       });
       this.drag.hover(function() {
@@ -56,7 +65,9 @@
         return this.drag.removeClass('cspHover');
       }).bind('mousedown.csp', function(e) {
         var startY;
-        $('html').bind('dragstart.csp selectstart.csp', nil);
+        $('html').bind('dragstart.csp selectstart.csp', function() {
+          return false;
+        });
         this.drag.addClass('cspActive');
         startY = e.pageY - this.drag.position().top;
         $('html').bind('mousemove.csp', function(e) {
@@ -72,10 +83,10 @@
       this.track.height(this.trackHeight + 'px');
       this.dragPosition = 0;
       scrollbarWidth = this.settings.verticalGutter + this.track.outerWidth();
-      this.pane.width(this.paneWidth - scrollbarWidth - this.originalPaddingTotalWidth);
+      this.pane.width(this.pane.width - scrollbarWidth - this.originalPaddingTotalWidth);
       try {
         if (this.verticalBar.position().left === 0) {
-          return this.pane.css('margin-left', scrollbarWidth + 'px');
+          return this.pane.html.css('margin-left', scrollbarWidth + 'px');
         }
       } catch (_error) {
         err = _error;
@@ -94,50 +105,202 @@
       return _ref1;
     }
 
-    HorizontalScroll.prototype.initialise = container()(function() {
+    HorizontalScroll.prototype.bar = null;
+
+    HorizontalScroll.prototype.track = null;
+
+    HorizontalScroll.prototype.drag = null;
+
+    HorizontalScroll.prototype.trackHeight = 0;
+
+    HorizontalScroll.prototype.pane = null;
+
+    HorizontalScroll.prototype.dragPosition = null;
+
+    HorizontalScroll.prototype.initialise = function(pane) {
       var arrowLeft, arrowRight;
-      container.append($('<div class="cspHorizontalBar" />').append($('<div class="cspCap cspCapLeft" />'), $('<div class="cspTrack" />').append($('<div class="cspDrag" />').append($('<div class="cspDragLeft" />'), $('<div class="cspDragRight" />'))), $('<div class="cspCap cspCapRight" />')));
-      this.horizontalBar = this.container.find('>.cspHorizontalBar');
-      this.horizontalTrack = this.horizontalBar.find('>.cspTrack');
-      this.horizontalDrag = this.horizontalTrack.find('>.cspDrag');
+      this.pane = pane;
+      this.pane.container.append($('<div class="cspHorizontalBar" />').append($('<div class="cspCap cspCapLeft" />'), $('<div class="cspTrack" />').append($('<div class="cspDrag" />').append($('<div class="cspDragLeft" />'), $('<div class="cspDragRight" />'))), $('<div class="cspCap cspCapRight" />')));
+      this.bar = this.pane.container.find('>.cspHorizontalBar');
+      this.track = this.bar.find('>.cspTrack');
+      this.drag = this.track.find('>.cspDrag');
       if (this.settings.showArrows) {
-        arrowLeft = $('<a class="cspArrow cspArrowLeft" />').bind('mousedown.csp', getArrowScroll(-1, 0)).bind('click.csp', nil);
-        arrowRight = $('<a class="cspArrow cspArrowRight" />').bind('mousedown.csp', getArrowScroll(1, 0)).bind('click.csp', nil);
+        arrowLeft = $('<a class="cspArrow cspArrowLeft" />').bind('mousedown.csp', getArrowScroll(-1, 0)).bind('click.csp', function() {
+          return false;
+        });
+        arrowRight = $('<a class="cspArrow cspArrowRight" />').bind('mousedown.csp', getArrowScroll(1, 0)).bind('click.csp', function() {
+          return false;
+        });
         if (this.settings.arrowScrollOnHover) {
           arrowLeft.bind('mouseover.csp', getArrowScroll(-1, 0, arrowLeft));
           arrowRight.bind('mouseover.csp', getArrowScroll(1, 0, arrowRight));
         }
-        appendArrows(this.horizontalTrack, this.settings.horizontalArrowPositions, arrowLeft, arrowRight);
+        appendArrows(this.track, this.settings.horizontalArrowPositions, arrowLeft, arrowRight);
       }
       this.horizontalDrag.hover(function() {
-        return this.horizontalDrag.addClass('cspHover');
+        return this.drag.addClass('cspHover');
       }, function() {
-        return this.horizontalDrag.removeClass('cspHover');
+        return this.drag.removeClass('cspHover');
       }).bind('mousedown.csp', function(e) {
         var startX;
-        $('html').bind('dragstart.csp selectstart.csp', nil);
-        this.horizontalDrag.addClass('cspActive');
-        startX = e.pageX - this.horizontalDrag.position().left;
+        $('html').bind('dragstart.csp selectstart.csp', function() {
+          return false;
+        });
+        this.drag.addClass('cspActive');
+        startX = e.pageX - this.drag.position().left;
         $('html').bind('mousemove.csp', function(e) {
           return positionDragX(e.pageX - startX, false);
         }).bind('mouseup.csp mouseleave.csp', cancelDrag);
         return false;
       });
-      this.horizontalTrackWidth = this.container.innerWidth();
-      return this.sizeHorizontalScrollbar();
-    });
+      this.trackWidth = this.pane.container.innerWidth();
+      return this.barSize();
+    };
 
     HorizontalScroll.prototype.barSize = function() {
-      this.container.find('>.cspHorizontalBar>.cspCap:visible,>.cspHorizontalBar>.cspArrow').each(function() {
-        return this.horizontalTrackWidth -= $(this).outerWidth();
+      this.pane.container.find('>.cspHorizontalBar>.cspCap:visible,>.cspHorizontalBar>.cspArrow').each(function() {
+        return this.trackWidth -= $(this).outerWidth();
       });
-      this.horizontalTrack.width(this.horizontalTrackWidth + 'px');
-      return this.horizontalDragPosition = 0;
+      this.track.width(this.trackWidth + 'px');
+      return this.dragPosition = 0;
     };
 
     return HorizontalScroll;
 
   })(Scroll);
+
+  Pane = (function() {
+    function Pane() {}
+
+    Pane.prototype.height = 0;
+
+    Pane.prototype.width = 0;
+
+    Pane.prototype.container = null;
+
+    Pane.prototype.html = null;
+
+    Pane.prototype.verticalScroll = null;
+
+    Pane.prototype.horizontalScroll = null;
+
+    Pane.prototype.construct = function(settings) {
+      return this.settings = settings;
+    };
+
+    Pane.prototype.initialize = function(elem) {
+      this.originalPadding = "" + (this.elem.css('paddingTop')) + " " + (this.elem.css('paddingRight')) + " " + (this.elem.css('paddingBottom')) + " " + (this.elem.css('paddingLeft'));
+      this.originalPaddingTotalWidth = (parseInt(this.elem.css('paddingLeft'), 10) || 0) + (parseInt(this.elem.css('paddingRight'), 10) || 0);
+      this.setSize(elem.innerWidth() + this.originalPaddingTotalWidth, elem.innerHeight());
+      this.html = $('<div class="cspPane" />').css('padding', this.originalPadding).append(elem.children());
+      this.container = $('<div class="cspContainer" />').css({
+        'width': this.pane.width + 'px',
+        'height': this.pane.height + 'px'
+      }).append(this.pane.html).appendTo(this.elem);
+      this.verticalScroll = new VerticalScroll(this.settings);
+      if (this.isScrollableV()) {
+        this.verticalScroll.initialise(this.pane);
+      }
+      this.horizontalScroll = new HorizontalScroll(this.settings);
+      if (this.isScrollableH()) {
+        this.horizontalScroll.initialise(this.pane);
+      }
+      return this.resizeScrollbars();
+    };
+
+    Pane.prototype.setSize = function(width, height) {
+      this.width = width;
+      return this.height = height;
+    };
+
+    Pane.prototype.contentWidth = function() {
+      if (this._contentWidth == null) {
+        this.html.css('overflow', 'auto');
+        this._contentWidth = this.html[0].scrollWidth;
+        this.html.css('overflow', '');
+      }
+      return this._contentWidth;
+    };
+
+    Pane.prototype.contentHeight = function() {
+      if (this._contentHeight == null) {
+        this.html.css('overflow', 'auto');
+        this._contentHeight = this.html[0].scrollHeight;
+        this.html.css('overflow', '');
+      }
+      return this._contentHeight;
+    };
+
+    Pane.prototype.percentInViewH = function() {
+      return this.contentWidth() / this.width;
+    };
+
+    Pane.prototype.percentInViewV = function() {
+      return this.contentHeight() / this.height;
+    };
+
+    Pane.prototype.isScrollableH = function() {
+      return this.percentInViewH() > 1;
+    };
+
+    Pane.prototype.isScrollableV = function() {
+      return this.percentInViewV() > 1;
+    };
+
+    Pane.prototype.contentPositionX = function() {
+      return -this.pane.html.position().left;
+    };
+
+    Pane.prototype.contentPositionY = function() {
+      return -this.pane.html.position().top;
+    };
+
+    Pane.prototype.resizeScrollbars = function() {
+      var horizontalDragWidth, verticalDragHeight;
+      if (this.isScrollableH() && this.isScrollableV()) {
+        this.horizontalTrackHeight = this.horizontalTrack.outerHeight();
+        this.verticalTrackWidth = this.verticalTrack.outerWidth();
+        this.verticalTrackHeight -= this.horizontalTrackHeight;
+        $(this.horizontalBar).find('>.cspCap:visible,>.cspArrow').each(function() {
+          return this.horizontalTrackWidth += $(this).outerWidth();
+        });
+        this.horizontalTrackWidth -= this.verticalTrackWidth;
+        this.pane.height -= this.verticalTrackWidth;
+        this.pane.width -= this.horizontalTrackHeight;
+        this.horizontalTrack.parent().append($('<div class="cspCorner" />').css('width', this.horizontalTrackHeight + 'px'));
+        this.sizeVerticalScrollbar();
+        this.sizeHorizontalScrollbar();
+      }
+      if (this.isScrollableH()) {
+        this.pane.width((this.pane.container.outerWidth() - this.originalPaddingTotalWidth) + 'px');
+      }
+      if (this.isScrollableH()) {
+        horizontalDragWidth = Math.ceil(1 / this.percentInViewH() * this.horizontalTrackWidth);
+        if (horizontalDragWidth > this.settings.horizontalDragMaxWidth) {
+          horizontalDragWidth = this.settings.horizontalDragMaxWidth;
+        } else if (horizontalDragWidth < this.settings.horizontalDragMinWidth) {
+          horizontalDragWidth = this.settings.horizontalDragMinWidth;
+        }
+        this.horizontalDrag.width(horizontalDragWidth + 'px');
+        this.dragMaxX = this.horizontalTrackWidth - horizontalDragWidth;
+        this._positionDragX(this.horizontalDragPosition);
+      }
+      if (this.isScrollableV()) {
+        verticalDragHeight = Math.ceil(1 / this.percentInViewV() * this.verticalTrackHeight);
+        if (verticalDragHeight > this.settings.verticalDragMaxHeight) {
+          verticalDragHeight = this.settings.verticalDragMaxHeight;
+        } else if (verticalDragHeight < this.settings.verticalDragMinHeight) {
+          verticalDragHeight = this.settings.verticalDragMinHeight;
+        }
+        this.verticalDrag.height(verticalDragHeight + 'px');
+        this.dragMaxY = this.verticalTrackHeight - verticalDragHeight;
+        return this._positionDragY(this.verticalDragPosition);
+      }
+    };
+
+    return Pane;
+
+  })();
 
   CScrollPane = (function() {
     CScrollPane.prototype.defaults = {
@@ -152,7 +315,6 @@
       verticalDragMaxHeight: 99999,
       horizontalDragMinWidth: 0,
       horizontalDragMaxWidth: 99999,
-      contentWidth: void 0,
       animateScroll: false,
       animateDuration: 300,
       animateEase: 'linear',
@@ -184,8 +346,6 @@
       this.wasAtRight = false;
       this.originalElement = this.elem.clone(false, false).empty();
       this.mwEvent = $.fn.mwheelIntent ? 'mwheelIntent.csp' : 'mousewheel.csp';
-      this.originalPadding = "" + (this.elem.css('paddingTop')) + " " + (this.elem.css('paddingRight')) + " " + (this.elem.css('paddingBottom')) + " " + (this.elem.css('paddingLeft'));
-      this.originalPaddingTotalWidth = (parseInt(this.elem.css('paddingLeft'), 10) || 0) + (parseInt(this.elem.css('paddingRight'), 10) || 0);
     }
 
     CScrollPane.prototype.initialise = function(s) {
@@ -200,82 +360,55 @@
           overflow: 'hidden',
           padding: 0
         });
-        this.paneWidth = this.elem.innerWidth() + this.originalPaddingTotalWidth;
-        this.paneHeight = this.elem.innerHeight();
-        this.elem.width(this.paneWidth);
-        this.pane = $('<div class="cspPane" />').css('padding', this.originalPadding).append(this.elem.children());
-        this.container = $('<div class="cspContainer" />').css({
-          'width': this.paneWidth + 'px',
-          'height': this.paneHeight + 'px'
-        }).append(this.pane).appendTo(this.elem);
+        this.pane = new Pane(settings);
+        this.pane.initialise(this.elem);
+        this.elem.width(this.pane.width);
       } else {
         this.elem.css('width', '');
         maintainAtBottom = this.settings.stickToBottom && isCloseToBottom();
         maintainAtRight = this.settings.stickToRight && isCloseToRight();
-        hasContainingSpaceChanged = this.elem.innerWidth() + this.originalPaddingTotalWidth !== this.paneWidth || this.elem.outerHeight() !== this.paneHeight;
+        hasContainingSpaceChanged = this.elem.innerWidth() + this.originalPaddingTotalWidth !== this.pane.width || this.elem.outerHeight() !== this.pane.height;
         if (hasContainingSpaceChanged) {
-          this.paneWidth = this.elem.innerWidth() + this.originalPaddingTotalWidth;
-          this.paneHeight = this.elem.innerHeight();
-          this.container.css({
-            width: this.paneWidth + 'px',
-            height: this.paneHeight + 'px'
+          this.pane.setSize(this.elem.innerWidth() + this.originalPaddingTotalWidth, this.elem.innerHeight());
+          this.pane.container.css({
+            width: this.pane.width + 'px',
+            height: this.pane.height + 'px'
           });
         }
-        if (!hasContainingSpaceChanged && previousContentWidth === this.contentWidth && this.pane.outerHeight() === this.contentHeight) {
-          this.elem.width(this.paneWidth);
+        if (!hasContainingSpaceChanged && previousContentWidth === this.pane.contentWidth() && this.pane.html.outerHeight() === this.pane.contentHeight()) {
+          this.elem.width(this.pane.width);
           return;
         }
-        previousContentWidth = this.contentWidth;
-        this.pane.css('width', '');
-        this.elem.width(this.paneWidth);
-        this.container.find('>.cspVerticalBar,>.cspHorizontalBar').remove().end();
+        previousContentWidth = this.pane.contentWidth();
+        this.pane.html.css('width', '');
+        this.elem.width(this.pane.width);
+        this.pane.container.find('>.cspVerticalBar,>.cspHorizontalBar').remove().end();
       }
-      this.pane.css('overflow', 'auto');
-      if (s.contentWidth) {
-        this.contentWidth = s.contentWidth;
-      } else {
-        this.contentWidth = this.pane[0].scrollWidth;
-      }
-      this.contentHeight = this.pane[0].scrollHeight;
-      this.pane.css('overflow', '');
-      this.percentInViewH = this.contentWidth / this.paneWidth;
-      this.percentInViewV = this.contentHeight / this.paneHeight;
-      this.isScrollableV = this.percentInViewV > 1;
-      this.isScrollableH = this.percentInViewH > 1;
-      if (!(this.isScrollableH || this.isScrollableV)) {
+      if (!(this.pane.isScrollableH() || this.pane.isScrollableV())) {
         this.elem.removeClass('cspScrollable');
-        this.pane.css({
+        this.pane.html.css({
           top: 0,
-          width: this.container.width() - this.originalPaddingTotalWidth
+          width: this.pane.container.width() - this.originalPaddingTotalWidth
         });
-        removeMousewheel();
-        removeFocusHandler();
-        removeKeyboardNav();
-        removeClickOnTrack();
+        this.removeMousewheel();
+        this.removeFocusHandler();
+        this.removeKeyboardNav();
+        this.removeClickOnTrack();
       } else {
         this.elem.addClass('cspScrollable');
         isMaintainingPositon = this.settings.maintainPosition && (this.verticalDragPosition || this.horizontalDragPosition);
         if (isMaintainingPositon) {
-          lastContentX = this.contentPositionX();
-          lastContentY = this.contentPositionY();
+          lastContentX = this.pane.contentPositionX();
+          lastContentY = this.pane.contentPositionY();
         }
-        this.verticalScroll = new VerticalScroll();
-        if (this.isScrollableV) {
-          this.verticalScroll.initialise(this.container);
-        }
-        this.horizontalScroll = new HorizontalScroll();
-        if (this.isScrollableH) {
-          this.horizontalScroll.initialise(this.container);
-        }
-        this.resizeScrollbars();
         if (isMaintainingPositon) {
           if (maintainAtRight) {
-            scrollToX(this.contentWidth - this.paneWidth, false);
+            scrollToX(this.pane.contentWidth() - this.pane.width, false);
           } else {
             scrollToX(lastContentX, false);
           }
           if (maintainAtBottom) {
-            scrollToY(this.contentHeight - this.paneHeight, false);
+            scrollToY(this.pane.contentHeight() - this.pane.height, false);
           } else {
             scrollToY(lastContentY, false);
           }
@@ -304,51 +437,6 @@
       originalScrollTop && this.elem.scrollTop(0) && scrollToY(originalScrollTop, false);
       originalScrollLeft && this.elem.scrollLeft(0) && scrollToX(originalScrollLeft, false);
       return this.elem.trigger('csp-initialised', [this.isScrollableH || this.isScrollableV]);
-    };
-
-    CScrollPane.prototype.resizeScrollbars = function() {
-      var horizontalDragWidth, verticalDragHeight;
-      if (this.isScrollableH && this.isScrollableV) {
-        this.horizontalTrackHeight = this.horizontalTrack.outerHeight();
-        this.verticalTrackWidth = this.verticalTrack.outerWidth();
-        this.verticalTrackHeight -= this.horizontalTrackHeight;
-        $(this.horizontalBar).find('>.cspCap:visible,>.cspArrow').each(function() {
-          return this.horizontalTrackWidth += $(this).outerWidth();
-        });
-        this.horizontalTrackWidth -= this.verticalTrackWidth;
-        this.paneHeight -= this.verticalTrackWidth;
-        this.paneWidth -= this.horizontalTrackHeight;
-        this.horizontalTrack.parent().append($('<div class="cspCorner" />').css('width', this.horizontalTrackHeight + 'px'));
-        this.sizeVerticalScrollbar();
-        this.sizeHorizontalScrollbar();
-      }
-      if (this.isScrollableH) {
-        this.pane.width((this.container.outerWidth() - this.originalPaddingTotalWidth) + 'px');
-      }
-      this.contentHeight = this.pane.outerHeight();
-      this.percentInViewV = this.contentHeight / this.paneHeight;
-      if (this.isScrollableH) {
-        horizontalDragWidth = Math.ceil(1 / this.percentInViewH * this.horizontalTrackWidth);
-        if (horizontalDragWidth > this.settings.horizontalDragMaxWidth) {
-          horizontalDragWidth = this.settings.horizontalDragMaxWidth;
-        } else if (horizontalDragWidth < this.settings.horizontalDragMinWidth) {
-          horizontalDragWidth = this.settings.horizontalDragMinWidth;
-        }
-        this.horizontalDrag.width(horizontalDragWidth + 'px');
-        this.dragMaxX = this.horizontalTrackWidth - horizontalDragWidth;
-        this._positionDragX(this.horizontalDragPosition);
-      }
-      if (this.isScrollableV) {
-        verticalDragHeight = Math.ceil(1 / this.percentInViewV * this.verticalTrackHeight);
-        if (verticalDragHeight > this.settings.verticalDragMaxHeight) {
-          verticalDragHeight = this.settings.verticalDragMaxHeight;
-        } else if (verticalDragHeight < this.settings.verticalDragMinHeight) {
-          verticalDragHeight = this.settings.verticalDragMinHeight;
-        }
-        this.verticalDrag.height(verticalDragHeight + 'px');
-        this.dragMaxY = this.verticalTrackHeight - verticalDragHeight;
-        return this._positionDragY(this.verticalDragPosition);
-      }
     };
 
     CScrollPane.prototype.appendArrows = function(ele, p, a1, a2) {
@@ -424,8 +512,8 @@
               var contentDragY, dragY, pos, scrollTimeout;
               offset = clickedTrack.offset();
               pos = e.pageY - offset.top - verticalDragHeight / 2;
-              contentDragY = this.paneHeight * this.settings.scrollPagePercent;
-              dragY = this.dragMaxY * contentDragY / (this.contentHeight - this.paneHeight);
+              contentDragY = this.pane.height * this.settings.scrollPagePercent;
+              dragY = this.dragMaxY * contentDragY / (this.pane.contentHeight() - this.pane.height);
               if (direction < 0) {
                 if (this.verticalDragPosition - dragY > pos) {
                   this.scrollByY(-contentDragY);
@@ -473,8 +561,8 @@
               var contentDragX, dragX, pos, scrollTimeout;
               offset = clickedTrack.offset();
               pos = e.pageX - offset.left - horizontalDragWidth / 2;
-              contentDragX = this.paneWidth * this.settings.scrollPagePercent;
-              dragX = this.dragMaxX * contentDragX / (this.contentWidth - this.paneWidth);
+              contentDragX = this.pane.width * this.settings.scrollPagePercent;
+              dragX = this.dragMaxX * contentDragX / (this.pane.contentWidth() - this.pane.width);
               if (direction < 0) {
                 if (this.horizontalDragPosition - dragX > pos) {
                   this.scrollByX(-contentDragX);
@@ -556,19 +644,19 @@
       if (destY === void 0) {
         destY = this.verticalDrag.position().top;
       }
-      this.container.scrollTop(0);
+      this.pane.container.scrollTop(0);
       this.verticalDragPosition = destY;
       isAtTop = this.verticalDragPosition === 0;
       isAtBottom = this.verticalDragPosition === this.dragMaxY;
       percentScrolled = destY / this.dragMaxY;
-      destTop = -percentScrolled * (this.contentHeight - this.paneHeight);
+      destTop = -percentScrolled * (this.pane.contentHeight() - this.pane.height);
       if (wasAtTop !== isAtTop || wasAtBottom !== isAtBottom) {
         wasAtTop = isAtTop;
         wasAtBottom = isAtBottom;
         this.elem.trigger('csp-arrow-change', [wasAtTop, wasAtBottom, this.wasAtLeft, this.wasAtRight]);
       }
       this.updateVerticalArrows(isAtTop, isAtBottom);
-      this.pane.css('top', destTop);
+      this.pane.html.css('top', destTop);
       return this.elem.trigger('csp-scroll-y', [-destTop, isAtTop, isAtBottom]).trigger('scroll');
     };
 
@@ -597,19 +685,19 @@
       if (destX === void 0) {
         destX = this.horizontalDrag.position().left;
       }
-      this.container.scrollTop(0);
+      this.pane.container.scrollTop(0);
       this.horizontalDragPosition = destX;
       isAtLeft = this.horizontalDragPosition === 0;
       isAtRight = this.horizontalDragPosition === this.dragMaxX;
       percentScrolled = destX / this.dragMaxX;
-      destLeft = -percentScrolled * (this.contentWidth - this.paneWidth);
+      destLeft = -percentScrolled * (this.pane.contentWidth() - this.pane.width);
       if (this.wasAtLeft !== isAtLeft || this.wasAtRight !== isAtRight) {
         this.wasAtLeft = isAtLeft;
         this.wasAtRight = isAtRight;
         this.elem.trigger('csp-arrow-change', [wasAtTop, wasAtBottom, this.wasAtLeft, this.wasAtRight]);
       }
       this.updateHorizontalArrows(isAtLeft, isAtRight);
-      this.pane.css('left', destLeft);
+      this.pane.html.css('left', destLeft);
       return this.elem.trigger('csp-scroll-x', [-destLeft, isAtLeft, isAtRight]).trigger('scroll');
     };
 
@@ -629,13 +717,13 @@
 
     CScrollPane.prototype.scrollToY = function(destY, animate) {
       var percentScrolled;
-      percentScrolled = destY / (this.contentHeight - this.paneHeight);
+      percentScrolled = destY / (this.pane.contentHeight() - this.pane.height);
       return positionDragY(percentScrolled * this.dragMaxY, animate);
     };
 
     CScrollPane.prototype.scrollToX = function(destX, animate) {
       var percentScrolled;
-      percentScrolled = destX / (this.contentWidth - this.paneWidth);
+      percentScrolled = destX / (this.pane.contentWidth() - this.pane.width);
       return positionDragX(percentScrolled * this.dragMaxX, animate);
     };
 
@@ -651,8 +739,8 @@
       }
       eleHeight = e.outerHeight();
       eleWidth = e.outerWidth();
-      this.container.scrollTop(0);
-      this.container.scrollLeft(0);
+      this.pane.container.scrollTop(0);
+      this.pane.container.scrollLeft(0);
       while (!e.is('.cspPane')) {
         eleTop += e.position().top;
         eleLeft += e.position().left;
@@ -661,51 +749,43 @@
           return;
         }
       }
-      viewportTop = this.contentPositionY();
-      maxVisibleEleTop = viewportTop + this.paneHeight;
+      viewportTop = this.pane.contentPositionY();
+      maxVisibleEleTop = viewportTop + this.pane.height;
       if (eleTop < viewportTop || stickToTop) {
         destY = eleTop - this.settings.verticalGutter;
       } else if (eleTop + eleHeight > maxVisibleEleTop) {
-        destY = eleTop - this.paneHeight + eleHeight + this.settings.verticalGutter;
+        destY = eleTop - this.pane.height + eleHeight + this.settings.verticalGutter;
       }
       if (destY) {
         scrollToY(destY, animate);
       }
-      viewportLeft = this.contentPositionX();
-      maxVisibleEleLeft = viewportLeft + this.paneWidth;
+      viewportLeft = this.pane.contentPositionX();
+      maxVisibleEleLeft = viewportLeft + this.pane.width;
       if (eleLeft < viewportLeft || stickToTop) {
         destX = eleLeft - this.settings.horizontalGutter;
       } else if (eleLeft + eleWidth > maxVisibleEleLeft) {
-        destX = eleLeft - this.paneWidth + eleWidth + this.settings.horizontalGutter;
+        destX = eleLeft - this.pane.width + eleWidth + this.settings.horizontalGutter;
       }
       if (destX) {
         return scrollToX(destX, animate);
       }
     };
 
-    CScrollPane.prototype.contentPositionX = function() {
-      return -this.pane.position().left;
-    };
-
-    CScrollPane.prototype.contentPositionY = function() {
-      return -this.pane.position().top;
-    };
-
     CScrollPane.prototype.isCloseToBottom = function() {
       var scrollableHeight;
-      scrollableHeight = this.contentHeight - this.paneHeight;
-      return (scrollableHeight > 20) && (scrollableHeight - this.contentPositionY() < 10);
+      scrollableHeight = this.pane.contentHeight() - this.pane.height;
+      return (scrollableHeight > 20) && (scrollableHeight - this.pane.contentPositionY() < 10);
     };
 
     CScrollPane.prototype.isCloseToRight = function() {
       var scrollableWidth;
-      scrollableWidth = this.contentWidth - this.paneWidth;
-      return (scrollableWidth > 20) && (scrollableWidth - this.contentPositionX() < 10);
+      scrollableWidth = this.pane.contentWidth() - this.pane.width;
+      return (scrollableWidth > 20) && (scrollableWidth - this.pane.contentPositionX() < 10);
     };
 
     CScrollPane.prototype.initMousewheel = function() {
       var _this = this;
-      return this.container.unbind(this.mwEvent).bind(this.mwEvent, function(event, delta, deltaX, deltaY) {
+      return this.pane.container.unbind(this.mwEvent).bind(this.mwEvent, function(event, delta, deltaX, deltaY) {
         var dX, dY;
         dX = _this.horizontalDragPosition;
         dY = _this.verticalDragPosition;
@@ -715,11 +795,7 @@
     };
 
     CScrollPane.prototype.removeMousewheel = function() {
-      return this.container.unbind(this.mwEvent);
-    };
-
-    CScrollPane.prototype.nil = function() {
-      return false;
+      return this.pane.container.unbind(this.mwEvent);
     };
 
     CScrollPane.prototype.initFocusHandler = function() {
@@ -759,7 +835,7 @@
             keyDownHandler();
             break;
           case 35:
-            scrollToY(this.contentHeight - this.paneHeight);
+            scrollToY(this.pane.contentHeight() - this.pane.height);
             keyDown = null;
             break;
           case 36:
@@ -776,12 +852,12 @@
       });
       if (this.settings.hideFocus) {
         this.elem.css('outline', 'none');
-        if ((__indexOf.call(this.container[0], 'hideFocus') >= 0)) {
+        if ((__indexOf.call(this.pane.container[0], 'hideFocus') >= 0)) {
           this.elem.attr('hideFocus', true);
         }
       } else {
         this.elem.css('outline', '');
-        if ((__indexOf.call(this.container[0], 'hideFocus') >= 0)) {
+        if ((__indexOf.call(this.pane.container[0], 'hideFocus') >= 0)) {
           this.elem.attr('hideFocus', false);
         }
       }
@@ -799,10 +875,10 @@
               break;
             case 34:
             case 32:
-              this.scrollByY(this.paneHeight * this.settings.scrollPagePercent, false);
+              this.scrollByY(this.pane.height * this.settings.scrollPagePercent, false);
               break;
             case 33:
-              this.scrollByY(-this.paneHeight * this.settings.scrollPagePercent, false);
+              this.scrollByY(-this.pane.height * this.settings.scrollPagePercent, false);
               break;
             case 39:
               this.scrollByX(this.settings.keyboardSpeed, false);
@@ -831,17 +907,17 @@
           return;
         }
         if (e.length && this.pane.find(hash)) {
-          if (this.container.scrollTop() === 0) {
+          if (this.pane.container.scrollTop() === 0) {
             return retryInt = setInterval(function() {
-              if (this.container.scrollTop() > 0) {
+              if (this.pane.container.scrollTop() > 0) {
                 scrollToElement(e, true);
-                $(document).scrollTop(this.container.position().top);
+                $(document).scrollTop(this.pane.container.position().top);
                 return clearInterval(retryInt);
               }
             }, 50);
           } else {
             scrollToElement(e, true);
-            return $(document).scrollTop(this.container.position().top);
+            return $(document).scrollTop(this.pane.container.position().top);
           }
         }
       }
@@ -873,14 +949,14 @@
         if (!element.length) {
           return;
         }
-        this.container = element.closest('.cspScrollable');
-        csp = this.container.data('csp');
+        this.pane.container = element.closest('.cspScrollable');
+        csp = this.pane.container.data('csp');
         this.scrollToElement(element, true);
-        if (this.container[0].scrollIntoView) {
+        if (this.pane.container[0].scrollIntoView) {
           scrollTop = $(window).scrollTop();
           elementTop = element.offset().top;
           if (elementTop < scrollTop || elementTop > scrollTop + $(window).height()) {
-            this.container[0].scrollIntoView();
+            this.pane.container[0].scrollIntoView();
           }
         }
         return event.preventDefault();
@@ -890,11 +966,11 @@
     CScrollPane.prototype.initTouch = function() {
       var moving;
       moving = false;
-      return this.container.unbind('touchstart.csp touchmove.csp touchend.csp click.csp-touchclick').bind('touchstart.csp', function(e) {
+      return this.pane.container.unbind('touchstart.csp touchmove.csp touchend.csp click.csp-touchclick').bind('touchstart.csp', function(e) {
         var moved, startX, startY, touch, touchStartX, touchStartY;
         touch = e.originalEvent.touches[0];
-        startX = this.contentPositionX();
-        startY = this.contentPositionY();
+        startX = this.pane.contentPositionX();
+        startY = this.pane.contentPositionY();
         touchStartX = touch.pageX;
         touchStartY = touch.pageY;
         moved = false;
@@ -923,8 +999,8 @@
 
     CScrollPane.prototype.destroy = function() {
       var currentX, currentY;
-      currentY = this.contentPositionY();
-      currentX = this.contentPositionX();
+      currentY = this.pane.contentPositionY();
+      currentX = this.pane.contentPositionX();
       this.elem.removeClass('cspScrollable').unbind('.csp');
       this.elem.replaceWith(originalElement.append(this.pane.children()));
       originalElement.scrollTop(currentY);
@@ -945,11 +1021,11 @@
     };
 
     CScrollPane.prototype.scrollToPercentX = function(destPercentX, animate) {
-      return this.scrollToX(destPercentX * (this.contentWidth - this.paneWidth), animate);
+      return this.scrollToX(destPercentX * (this.pane.contentWidth() - this.pane.width), animate);
     };
 
     CScrollPane.prototype.scrollToPercentY = function(destPercentY, animate) {
-      return this.scrollToY(destPercentY * (this.contentHeight - this.paneHeight), animate);
+      return this.scrollToY(destPercentY * (this.pane.contentHeight() - this.pane.height), animate);
     };
 
     CScrollPane.prototype.scrollBy = function(deltaX, deltaY, animate) {
@@ -959,15 +1035,15 @@
 
     CScrollPane.prototype.scrollByX = function(deltaX, animate) {
       var destX, percentScrolled;
-      destX = this.contentPositionX() + Math[deltaX < 0 ? 'floor' : 'ceil'](deltaX);
-      percentScrolled = destX / (this.contentWidth - this.paneWidth);
+      destX = this.pane.contentPositionX() + Math[deltaX < 0 ? 'floor' : 'ceil'](deltaX);
+      percentScrolled = destX / (this.pane.contentWidth() - this.pane.width);
       return this.positionDragX(percentScrolled * this.dragMaxX, animate);
     };
 
     CScrollPane.prototype.scrollByY = function(deltaY, animate) {
       var destY, percentScrolled;
-      destY = this.contentPositionY() + Math[deltaY < 0 ? 'floor' : 'ceil'](deltaY);
-      percentScrolled = destY / (this.contentHeight - this.paneHeight);
+      destY = this.pane.contentPositionY() + Math[deltaY < 0 ? 'floor' : 'ceil'](deltaY);
+      percentScrolled = destY / (this.pane.contentHeight() - this.pane.height);
       return this.positionDragY(percentScrolled * this.dragMaxY, animate);
     };
 
@@ -984,15 +1060,15 @@
     };
 
     CScrollPane.prototype.getContentPositionX = function() {
-      return this.contentPositionX();
+      return this.pane.contentPositionX();
     };
 
     CScrollPane.prototype.getContentPositionY = function() {
-      return this.contentPositionY();
+      return this.pane.contentPositionY();
     };
 
     CScrollPane.prototype.getContentWidth = function() {
-      return this.contentWidth;
+      return this.pane.contentWidth();
     };
 
     CScrollPane.prototype.getContentHeight = function() {
@@ -1000,11 +1076,11 @@
     };
 
     CScrollPane.prototype.getPercentScrolledX = function() {
-      return this.contentPositionX() / (this.contentWidth - this.paneWidth);
+      return this.pane.contentPositionX() / (this.pane.contentWidth() - this.pane.width);
     };
 
     CScrollPane.prototype.getPercentScrolledY = function() {
-      return this.contentPositionY() / (this.contentHeight - this.paneHeight);
+      return this.pane.contentPositionY() / (this.pane.contentHeight() - this.pane.height);
     };
 
     CScrollPane.prototype.getIsScrollableH = function() {
